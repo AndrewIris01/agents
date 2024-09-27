@@ -1,0 +1,85 @@
+import speech_recognition as sr
+import pyttsx3
+import openai
+import time
+
+# Initialize the speech recognition and text-to-speech engines
+recognizer = sr.Recognizer()
+engine = pyttsx3.init()
+
+# Set your OpenAI API key (if using GPT for AI logic)
+openai.api_key = 'your-openai-api-key'
+
+def speak(text):
+    """Converts text to speech."""
+    engine.say(text)
+    engine.runAndWait()
+
+def listen():
+    """Listens to the user's voice and converts it to text."""
+    with sr.Microphone() as source:
+        recognizer.adjust_for_ambient_noise(source)
+        print("Listening...")
+        audio = recognizer.listen(source)
+
+        try:
+            query = recognizer.recognize_google(audio)
+            print(f"You said: {query}")
+            return query.lower()
+        except sr.UnknownValueError:
+            speak("Sorry, I did not understand that.")
+            return None
+        except sr.RequestError:
+            speak("Sorry, there was an issue with the voice recognition service.")
+            return None
+
+def execute_code(code):
+    """Executes the code passed as a string."""
+    try:
+        exec(code)
+        speak("Code executed successfully.")
+    except Exception as e:
+        speak(f"Error in the code: {str(e)}")
+
+def ai_assistant(query):
+    """Handles the basic features of Andrew Iris."""
+    if "hello" in query:
+        speak("Hello, how can I assist you today?")
+    
+    elif "what time is it" in query:
+        current_time = time.strftime("%I:%M %p")
+        speak(f"The time is {current_time}")
+    
+    elif "add code" in query:
+        speak("Please dictate the code you want to add.")
+        code_to_execute = listen()
+        if code_to_execute:
+            execute_code(code_to_execute)
+    
+    else:
+        # Default to using GPT for complex questions
+        try:
+            response = openai.Completion.create(
+                model="text-davinci-003",
+                prompt=query,
+                temperature=0.7,
+                max_tokens=100
+            )
+            answer = response.choices[0].text.strip()
+            speak(answer)
+        except Exception as e:
+            speak("Sorry, I am unable to process your request.")
+
+def main():
+    """Main function to run the AI assistant loop."""
+    speak("Andrew Iris is now active. How can I help you?")
+    while True:
+        query = listen()
+        if query:
+            ai_assistant(query)
+        if "stop" in query:
+            speak("Shutting down Andrew Iris. Goodbye!")
+            break
+
+if __name__ == "__main__":
+    main()
